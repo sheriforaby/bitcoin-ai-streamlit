@@ -35,16 +35,30 @@ def get_news_sentiment(keyword="Bitcoin"):
 
 @st.cache_data
 def load_data():
-    df = yf.download("BTC-USD", start="2020-01-01", end="2024-12-31")
+    df = yf.download("BTC-USD", start="2021-01-01", end="2024-12-31")
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+
+    # تنظيف البيانات أولاً
+    df.dropna(inplace=True)
+
+    # التأكد من أن البيانات مش فاضية
+    if df.empty or df['Close'].isnull().all():
+        st.error("لا توجد بيانات كافية لتحليلها.")
+        st.stop()
+
+    # المؤشرات الفنية
     df['RSI'] = RSIIndicator(close=df['Close'], window=14).rsi()
     macd = MACD(close=df['Close'])
     df['MACD'] = macd.macd()
     df['MACD_signal'] = macd.macd_signal()
+
+    # حذف الصفوف اللي فيها NaN بعد المؤشرات
     df.dropna(inplace=True)
+
     df['Tomorrow'] = df['Close'].shift(-1)
     df['Target'] = (df['Tomorrow'] > df['Close']).astype(int)
-    return df
+    return df.dropna()
+
 
 df = load_data()
 st.subheader("📊 حركة السعر التاريخية")
