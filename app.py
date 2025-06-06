@@ -25,11 +25,17 @@ def load_data():
     df = df[df['Close'].notnull()]
     df.reset_index(drop=True, inplace=True)
     
+    # RSI
     df['RSI'] = compute_rsi(df['Close'], 14)
     
+    # MACD
     macd = MACD(close=df['Close'])
-    df['MACD'] = macd.macd()
-    df['MACD_signal'] = macd.macd_signal()
+    macd_values = macd.macd()
+    macd_signal_values = macd.macd_signal()
+    
+    # تأكد من التحويل لسلسلة 1D مع index مطابق
+    df['MACD'] = pd.Series(macd_values, index=df.index)
+    df['MACD_signal'] = pd.Series(macd_signal_values, index=df.index)
     
     df.dropna(inplace=True)
     
