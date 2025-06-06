@@ -36,7 +36,15 @@ def load_data():
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
     df.dropna(inplace=True)
 
-    if df.empty or df['Close'].isnull().all().item():
+    # فلترة بيانات سعر الإغلاق وضبط الفهرس
+    df = df[df['Close'].notnull()]
+    df = df.reset_index(drop=True)
+
+    # طباعة لفحص البيانات في سجل الأخطاء (لو عندك وصول للسيرفر)
+    print("أول 10 قيم لسعر الإغلاق:")
+    print(df['Close'].head(10))
+
+    if df.empty:
         st.error("لا توجد بيانات كافية لتحليلها.")
         st.stop()
 
