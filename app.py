@@ -36,9 +36,7 @@ def load_data():
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
     df.dropna(inplace=True)
 
-    if df.empty or (df['Close'].isnull().all()):
-        st.error("لا توجد بيانات كافية لتحليلها.")
-        st.stop()
+   if df.empty or df['Close'].isnull().all().item():
 
     df['RSI'] = RSIIndicator(close=df['Close'], window=14).rsi()
     macd = MACD(close=df['Close'])
