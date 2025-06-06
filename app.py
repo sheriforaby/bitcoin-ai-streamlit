@@ -1,53 +1,50 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+from ta.momentum import RSIIndicator
 from ta.trend import MACD
 
-st.title("تطبيق تحليل بيتكوين باستخدام الذكاء الاصطناعي")
-
-def compute_rsi(data, window=14):
-    delta = data.diff()
-    gain = delta.where(delta > 0, 0.0)
-    loss = -delta.where(delta < 0, 0.0)
-
-    avg_gain = gain.rolling(window=window, min_periods=window).mean()
-    avg_loss = loss.rolling(window=window, min_periods=window).mean()
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+st.title("تحليل البيتكوين مع مؤشرات RSI و MACD")
 
 @st.cache_data
-def load_data():
-    df = yf.download("BTC-USD", start="2021-01-01", end="2024-12-31")
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+def load_data(ticker="BTC-USD", period="6mo"):
+    df = yf.download(ticker, period=period)
     df.dropna(inplace=True)
-    df = df[df['Close'].notnull()]
-    df.reset_index(drop=True, inplace=True)
-    
-    # RSI
-    df['RSI'] = compute_rsi(df['Close'], 14)
-    
-    # MACD
-    macd = MACD(close=df['Close'])
-    macd_values = macd.macd()
-    macd_signal_values = macd.macd_signal()
-    
-    # تأكد من التحويل لسلسلة 1D مع index مطابق
-    df['MACD'] = pd.Series(macd_values, index=df.index)
-    df['MACD_signal'] = pd.Series(macd_signal_values, index=df.index)
-    
-    df.dropna(inplace=True)
-    
-    df['Tomorrow'] = df['Close'].shift(-1)
-    df['Target'] = (df['Tomorrow'] > df['Close']).astype(int)
-    df.dropna(inplace=True)
-    
     return df
 
 df = load_data()
 
-st.write("معاينة البيانات بعد التنظيف والحساب:")
-st.dataframe(df.head())
+# حساب RSI
+rsi = RSIIndicator(close=df['Close'], window=14).rsi()
+df['RSI'] = rsi
 
-st.write("مؤشرات RSI و MACD تم حسابها بنجاح.")
+# حساب MACD
+macd_indicator = MACD(close=df['Close'])
+df['MACD'] = macd_indicator.macd()
+df['MACD_signal'] = macd_indicator.macd_signal()
+
+st.subheader("البيانات التاريخية للبيتكوين")
+st.dataframe(df.tail(10))
+
+st.subheader("مخطط سعر الإغلاق مع مؤشرات RSI و MACD")
+
+import matplotlib.pyplot as plt
+
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+
+ax1.plot(df.index, df['Close'], label='سعر الإغلاق')
+ax1.set_ylabel('السعر')
+ax1.legend()
+
+ax2.plot(df.index, df['RSI'], label='RSI', color='orange')
+ax2.axhline(70, color='red', linestyle='--')
+ax2.axhline(30, color='green', linestyle='--')
+ax2.set_ylabel('RSI')
+ax2.legend()
+
+ax3.plot(df.index, df['MACD'], label='MACD', color='purple')
+ax3.plot(df.index, df['MACD_signal'], label='MACD Signal', color='green')
+ax3.set_ylabel('MACD')
+ax3.legend()
+
+st.pyplot(fig)
