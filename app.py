@@ -42,10 +42,7 @@ def load_data():
     df.dropna(inplace=True)
 
     # التأكد من أن البيانات مش فاضية
-    if df.empty or df['Close'].isnull().all():
-        st.error("لا توجد بيانات كافية لتحليلها.")
-        st.stop()
-
+    if df.empty or df['Close'].isnull().all().item():
     # المؤشرات الفنية
     df['RSI'] = RSIIndicator(close=df['Close'], window=14).rsi()
     macd = MACD(close=df['Close'])
